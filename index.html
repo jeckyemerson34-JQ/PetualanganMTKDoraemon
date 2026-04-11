@@ -286,8 +286,38 @@
         #laser-beam { position: absolute; height: 15px; background: linear-gradient(to right, #fff, #00e5ff, #0096e7); box-shadow: 0 0 25px #00e5ff; border-radius: 10px; display: none; opacity: 1; z-index: 34; transform-origin: left center; }
         #feedback-overlay { display: none; position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); font-family: 'Fredoka One'; font-size: 3rem; z-index: 80; text-shadow: 3px 3px 0 #000; width: 100%; text-align: center; }
         
-        .hud-btn { background: rgba(0,0,0,0.5); border: 2px solid white; color: white; width: 35px; height: 35px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; justify-content: center; align-items: center; pointer-events: auto; }
-        #top-controls { display: flex; gap: 5px; }
+        /* Unified controls style */
+        .top-right-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .hud-btn { 
+            background: rgba(0,0,0,0.5); 
+            border: 2px solid white; 
+            color: white; 
+            width: 40px; 
+            height: 40px; 
+            border-radius: 50%; 
+            font-size: 20px; 
+            cursor: pointer; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            pointer-events: auto;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .hud-btn:hover {
+            transform: scale(1.1);
+            background: rgba(0, 150, 231, 0.7);
+        }
+        .hud-btn:active {
+            transform: scale(0.95);
+        }
         
         #dev-info-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; justify-content: center; align-items: center; }
         .btn-close {
@@ -314,6 +344,11 @@
     <audio id="sfx-wrong"><source src="https://assets.mixkit.co/sfx/preview/mixkit-retro-arcade-game-over-3068.mp3" type="audio/mpeg"></audio>
 
     <div id="game-container">
+        <!-- GLOBAL CONTROLS (Always Visible unless in transition) -->
+        <div id="global-controls" class="top-right-controls">
+            <button class="hud-btn" id="btn-fullscreen-global" onclick="toggleFullscreen()" title="Full Screen">⛶</button>
+        </div>
+
         <canvas id="gameCanvas"></canvas>
 
         <div id="question-panel">
@@ -339,10 +374,9 @@
                 <div id="mission-display" class="mission-box">Misi: 0/10</div>
 
                 <div id="top-controls">
-                    <button class="hud-btn" id="btn-dev-game" onclick="showDevInfo()">👤</button>
-                    <button class="hud-btn" id="btn-music" onclick="toggleMusic()">🎵</button>
-                    <button class="hud-btn" id="btn-fullscreen" onclick="toggleFullscreen()">⛶</button>
-                    <button class="hud-btn" id="btn-home" onclick="backToMap()" style="display:none; background:orange;">🏠</button>
+                    <button class="hud-btn" id="btn-dev-game" onclick="showDevInfo()" title="Profil">👤</button>
+                    <button class="hud-btn" id="btn-music" onclick="toggleMusic()" title="Musik">🎵</button>
+                    <button class="hud-btn" id="btn-home" onclick="backToMap()" style="display:none; background:orange;" title="Beranda">🏠</button>
                 </div>
             </div>
         </div>
@@ -370,7 +404,7 @@
 
         <div id="map-screen">
             <h1 class="map-title">Peta Kerajaan</h1>
-            <div id="map-controls" style="position:absolute; top:20px; right:20px; display:flex; gap:10px; z-index:30;">
+            <div id="map-controls" class="top-right-controls" style="top:70px;"> <!-- Offset to not overlap with global FS button -->
                  <button class="hud-btn" onclick="showDevInfo()">👤</button>
                  <button class="hud-btn" onclick="toggleMusic()">🎵</button>
             </div>
@@ -459,9 +493,30 @@
         resizeCanvas();
 
         function toggleFullscreen() {
-            if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(err=>{}); } 
-            else { if (document.exitFullscreen) document.exitFullscreen(); }
+            if (!document.fullscreenElement) { 
+                document.documentElement.requestFullscreen()
+                    .then(() => {
+                        document.getElementById('btn-fullscreen-global').innerText = "❌";
+                    })
+                    .catch(err => {
+                        console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+                    });
+            } else { 
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                    document.getElementById('btn-fullscreen-global').innerText = "⛶";
+                }
+            }
         }
+
+        // Handle escape key or manual exit
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                document.getElementById('btn-fullscreen-global').innerText = "⛶";
+            } else {
+                document.getElementById('btn-fullscreen-global').innerText = "❌";
+            }
+        });
 
         function toggleMusic() {
             isMusicOn = !isMusicOn;
@@ -690,7 +745,10 @@
 
         // --- GAME LOGIC ---
         function enterMap() {
-            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
+            // Attempt fullscreen on first interaction
+            if (document.documentElement.requestFullscreen) {
+                // Not forcing it here to avoid blocking popups, but user can click the button
+            }
             
             if(isMusicOn) {
                 battleMusic.pause();
